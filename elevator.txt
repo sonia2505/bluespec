@@ -1,0 +1,40 @@
+import VectorOfBool;
+const N_FLOORS = 8;
+const N_ELEVATORS = 4;
+type RequestType is (INTERNAL, UP, DOWN, INVALID);
+type Request is {
+  floor: [0..N_FLOORS-1];
+  rtype: RequestType;
+};
+
+type ElevatorState is (IDLE, MOVING, DOOR_OPEN);
+type Elevator is {
+  eid: [0..N_ELEVATORS-1];
+  floor: [0..N_FLOORS-1];
+  state: ElevatorState;
+  destination: [0..N_FLOORS-1];
+};
+
+
+module ElevatorController
+(
+  clock: in bit;
+  reset: in bit;
+  requests: in VectorOfBool#(N_FLOORS*3, RequestType);
+  elevators: in VectorOfBool#(N_ELEVATORS, Elevator);
+)
+(
+  assign_requests: out VectorOfBool#(N_ELEVATORS, Request);
+  assign_destinations: out VectorOfBool#(N_ELEVATORS, [0..N_FLOORS-1]);
+)
+
+is
+  Reg#(VectorOfBool#(1, Request)) pending_requests;
+  Reg#(VectorOfBool#(1, {eid: [0..N_ELEVATORS-1]; request: Request})) assigned_requests;
+  Reg#(VectorOfBool#(1, Elevator)) elevators_by_id;
+begin
+  pending_requests <=
+    {i in [0..N_FLOORS*3-1]}
+      (requests[i] != INVALID)
+      ? {request: {floor: i / 3; rtype: requests[i]}}
+      : pending_requests[i];
